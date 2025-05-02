@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources xmlns:tools="http://schemas.android.com/tools">
+
+    <style name="Theme.MarcacionesApp" parent="android:Theme.Material.Light.NoActionBar" >
+        <item name="android:windowSplashScreenBackground" tools:targetApi="31">#000000</item>
+        <item name="android:windowSplashScreenAnimatedIcon" tools:targetApi="31">@drawable/asistencia</item>
+        <item name="android:windowSplashScreenAnimationDuration" tools:targetApi="31">3500</item>
+    </style>
+</resources>

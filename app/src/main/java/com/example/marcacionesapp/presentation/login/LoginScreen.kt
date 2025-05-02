@@ -1,0 +1,140 @@
+package com.example.marcacionesapp.presentation.login
+
+import android.app.Application
+import android.widget.Toast
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Person
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.PasswordVisualTransformation
+import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
+
+import com.example.marcacionesapp.R
+import androidx.navigation.NavController
+import com.example.marcacionesapp.data.EntryPoint.UsuarioDaoEntryPoint
+import com.example.marcacionesapp.data.dao.UsuarioDao
+import com.example.marcacionesapp.data.dataStore.UsuarioSessionManager
+import com.example.marcacionesapp.data.entity.UsuarioEntity
+import dagger.hilt.android.EntryPointAccessors
+import kotlinx.coroutines.launch
+
+@Composable
+fun LoginScreen(
+    navController: NavController? = null,
+    loginViewModel: LoginViewModel = hiltViewModel()
+) {
+    var username by remember { mutableStateOf("") }
+    var password by remember { mutableStateOf("") }
+    val context = LocalContext.current
+
+    // Mostrar usuario demo solo la primera vez
+    val application = context.applicationContext as Application
+    val usuarioDao = EntryPointAccessors.fromApplication(
+        application,
+        UsuarioDaoEntryPoint::class.java
+    ).usuarioDao()
+
+    LaunchedEffect(Unit) {
+        if (usuarioDao.getUsuarioPorNombre("aoter") == null) {
+            val usuarioPrueba = UsuarioEntity(usuario = "aotero", password = "123")
+            usuarioDao.insertar(usuarioPrueba)
+        }
+    }
+
+    Surface(
+        modifier = Modifier.fillMaxSize(),
+        color = MaterialTheme.colorScheme.background
+    ) {
+        Column(
+            Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Image(
+                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+                contentDescription = "Logo",
+                modifier = Modifier.size(120.dp)
+            )
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            OutlinedTextField(
+                value = username,
+                onValueChange = { username = it },
+                label = { Text("Correo institucional") },
+                leadingIcon = { Icon(Icons.Default.Person, contentDescription = null) },
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            OutlinedTextField(
+                value = password,
+                onValueChange = { password = it },
+                label = { Text("Contraseña") },
+                visualTransformation = PasswordVisualTransformation(),
+                leadingIcon = { Icon(Icons.Default.Lock, contentDescription = null) },
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                modifier = Modifier.fillMaxWidth()
+            )
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            Button(
+                onClick = {
+                    loginViewModel.login(
+                        usuario = username,
+                        password = password,
+                        onSuccess = {
+                            navController?.navigate("home") {
+                                popUpTo("login") { inclusive = true }
+                            }
+                        },
+                        onError = {
+                            Toast.makeText(
+                                context,
+                                "Usuario o Contraseña incorrectos",
+                                Toast.LENGTH_SHORT
+                            ).show()
+                        }
+                    )
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(50.dp)
+            ) {
+                Text("Iniciar Sesión")
+            }
+        }
+    }
+}
