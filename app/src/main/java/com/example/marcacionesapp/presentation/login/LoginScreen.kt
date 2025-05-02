@@ -63,7 +63,7 @@ fun LoginScreen(
     ).usuarioDao()
 
     LaunchedEffect(Unit) {
-        if (usuarioDao.getUsuarioPorNombre("aoter") == null) {
+        if (usuarioDao.getUsuarioPorNombre("aotero") == null) {
             val usuarioPrueba = UsuarioEntity(usuario = "aotero", password = "123")
             usuarioDao.insertar(usuarioPrueba)
         }
