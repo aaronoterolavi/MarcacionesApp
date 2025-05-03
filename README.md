@@ -117,9 +117,9 @@ El proyecto está en desarrollo, con algunas funcionalidades completas (como el 
 
 - **Optimización del manejo de permisos y validación de dispositivos sin cámara**
 
-### 👤 Autor y Créditos
-- **Autor: Aaron Andre Otero Lavi**
+### 👤 Autores y Créditos
+- **Aaron Andre Otero Lavi**
+- **Danny Huapaya Hinostroza**
+- **Edson Arturo Quispe Ornay**
 
-- **GitHub: aaronoterolavi**
 
-- **LinkedIn: Aaron Otero**
