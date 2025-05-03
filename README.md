@@ -2,7 +2,7 @@
 
 ## 📘 Descripción General
 
-### ¿Qué hace tu aplicación?
+### ¿Qué hace la aplicación?
 La aplicación es para la marcación de asistencias (Entrada, Salida, Salida Refrigerio, Regreso Refrigerio, Papeletas).
 
 ### ¿A quién está dirigida?
