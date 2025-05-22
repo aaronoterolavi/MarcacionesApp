@@ -4,7 +4,6 @@ import android.Manifest
 import android.annotation.SuppressLint
 import android.content.pm.PackageManager
 import android.location.Location
-import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -30,30 +29,25 @@ import com.google.android.gms.location.LocationServices
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
-import com.google.android.gms.maps.model.Marker
-import com.google.maps.android.compose.CameraPositionState
 import com.google.maps.android.compose.GoogleMap
 import com.google.maps.android.compose.MapProperties
-import com.google.maps.android.compose.MapType
 import com.google.maps.android.compose.MapUiSettings
 import com.google.maps.android.compose.Marker
 import com.google.maps.android.compose.rememberCameraPositionState
 import com.google.maps.android.compose.rememberMarkerState
 import kotlinx.coroutines.launch
-import kotlin.random.Random
 
 @Composable
 fun MapaScreen() {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
 
-    // Estado del mapa
+
     val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-12.0464, -77.0428), 10f) // Lima por defecto
+        position = CameraPosition.fromLatLngZoom(LatLng(-12.0464, -77.0428), 10f)
     }
     val markerState = rememberMarkerState()
 
-    // Permisos
     var locationPermissionGranted by remember { mutableStateOf(false) }
 
     val locationPermissionLauncher = rememberLauncherForActivityResult(
@@ -62,12 +56,10 @@ fun MapaScreen() {
         locationPermissionGranted = granted
     }
 
-    // Cliente de ubicación
     val fusedLocationClient = remember {
         LocationServices.getFusedLocationProviderClient(context)
     }
 
-    // Solicita permisos al iniciar
     LaunchedEffect(Unit) {
         if (ContextCompat.checkSelfPermission(
                 context,
@@ -80,7 +72,6 @@ fun MapaScreen() {
         }
     }
 
-    // Función para obtener ubicación
     @SuppressLint("MissingPermission")
     fun getCurrentLocation(onLocation: (Location) -> Unit) {
         if (locationPermissionGranted) {
@@ -91,7 +82,6 @@ fun MapaScreen() {
         }
     }
 
-    // UI
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
@@ -112,7 +102,6 @@ fun MapaScreen() {
             }
         }
 
-        // Botón flotante para centrar en ubicación actual
         Column(
             modifier = Modifier
                 .fillMaxSize()

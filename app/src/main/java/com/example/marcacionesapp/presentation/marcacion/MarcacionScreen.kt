@@ -1,9 +1,12 @@
 package com.example.marcacionesapp.presentation.marcacion
 
+import android.Manifest
 import android.content.Intent
-import android.net.Uri
+import android.content.pm.PackageManager
 import android.provider.Settings
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -25,8 +28,11 @@ import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -37,225 +43,209 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
 import androidx.hilt.navigation.compose.hiltViewModel
-import androidx.lifecycle.viewmodel.compose.viewModel
-import com.example.marcacionesapp.presentation.login.LoginViewModel
 import com.google.accompanist.permissions.ExperimentalPermissionsApi
 import com.google.accompanist.permissions.PermissionStatus
 import com.google.accompanist.permissions.isGranted
 import com.google.accompanist.permissions.rememberPermissionState
 import com.google.accompanist.permissions.shouldShowRationale
+import androidx.core.net.toUri
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
+
 
 @OptIn(ExperimentalPermissionsApi::class)
 @Composable
-fun MarcacionScreen(viewModel: MarcacionViewModel) {
+fun MarcacionScreen(viewModel: MarcacionViewModel = hiltViewModel()) {
 
     val estadoMarcacion by viewModel.estadoMarcacion.collectAsState()
-    var tipoMarcacion by remember { mutableStateOf("Entrada") }
-    var papeleta by remember { mutableStateOf("") }
     val latitud by viewModel.latitud.collectAsState()
     val longitud by viewModel.longitud.collectAsState()
-    val context= LocalContext.current
-    var mostrarCamara by remember { mutableStateOf(false) }
-    val cameraPermissionState = rememberPermissionState(android.Manifest.permission.CAMERA)
 
-    // Mostrar la cámara si el permiso fue otorgado
-    if (mostrarCamara && cameraPermissionState.status.isGranted) {
+    var tipoMarcacion by remember { mutableIntStateOf(1) }
+    var papeleta by remember { mutableStateOf("") }
+    var mostrarCamara by remember { mutableStateOf(false) }
+
+    val permisoCamara = rememberPermissionState(Manifest.permission.CAMERA)
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+
+    val permisoUbicacion = rememberLauncherForActivityResult (
+        contract = ActivityResultContracts.RequestPermission(),
+        onResult = { isGranted ->
+            if (isGranted) {
+                viewModel.iniciarUbicacion()
+            } else {
+                Toast.makeText(context, "Se necesita permiso de ubicación para marcar", Toast.LENGTH_LONG).show()
+            }
+        }
+    )
+
+    LaunchedEffect(Unit) {
+        val hasPermission = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        ) == PackageManager.PERMISSION_GRANTED
+
+        if (hasPermission) {
+            viewModel.iniciarUbicacion()
+        } else {
+            permisoUbicacion.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+        }
+    }
+
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) {
+                viewModel.detenerUbicacion()
+            } else if (event == Lifecycle.Event.ON_START) {
+                val hasPermission = ContextCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) == PackageManager.PERMISSION_GRANTED
+
+                if (hasPermission) {
+                    viewModel.iniciarUbicacion()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    if (mostrarCamara && permisoCamara.status.isGranted) {
         CameraView(
             onCapture = { file ->
                 mostrarCamara = false
                 Toast.makeText(context, "Foto guardada: ${file.name}", Toast.LENGTH_SHORT).show()
 
                 val rutaFoto = file.absolutePath
+                viewModel.marcar(tipoMarcacion, rutaFoto, observacion = papeleta.ifBlank { null })
 
                 tipoMarcacion = when (tipoMarcacion) {
-                    "Entrada" -> "Salida"
-                    "Salida_A_Refrigerio" -> "Regreso_De_Refrigerio"
-                    "Regreso_De_Refrigerio" -> "Salida"
-                    "Papeleta" -> "Entrada"
-                    else -> "Entrada"
+                    1 -> 2 // Entrada -> Salida a Refrigerio
+                    2 -> 3 // Salida a Refrigerio -> Regreso de Refrigerio
+                    3 -> 4 // Regreso de Refrigerio -> Salida
+                    4 -> 1 // Salida -> Entrada
+                    5 -> 1 // Papeleta -> Entrada
+                    else -> 1 //  Entrada
                 }
-                viewModel.marcar(tipoMarcacion, rutaFoto)
+
+                papeleta = ""
             }
         )
     }
 
-    // Si el permiso fue denegado permanentemente
-    if (cameraPermissionState.status is PermissionStatus.Denied &&
-        !(cameraPermissionState.status as PermissionStatus.Denied).shouldShowRationale) {
-
+    if (permisoCamara.status is PermissionStatus.Denied &&
+        !(permisoCamara.status as PermissionStatus.Denied).shouldShowRationale) {
         AlertDialog(
-            onDismissRequest = { /* Evita que se cierre al tocar fuera del cuadro */ },
-            title = {
-                Text("Permiso de cámara requerido")
-            },
-            text = {
-                Text("El permiso de cámara ha sido denegado permanentemente. Por favor, ve a configuración para habilitarlo.")
-            },
+            onDismissRequest = {},
+            title = { Text("Permiso de cámara requerido") },
+            text = { Text("El permiso ha sido denegado permanentemente. Ve a configuración para activarlo.") },
             confirmButton = {
                 Button(onClick = {
                     val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS)
-                    intent.data = Uri.parse("package:${context.packageName}")
+                    intent.data = "package:${context.packageName}".toUri()
                     context.startActivity(intent)
                 }) {
                     Text("Ir a configuración")
                 }
-            },
-//            dismissButton = {
-//                Button(onClick = { /* Podrías cerrar la app o volver atrás */ }) {
-//                    Text("Cancelar")
-//                }
-//            }
+            }
         )
     }
 
+    if (!mostrarCamara) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
+            Text("Marcación Actual", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+            Spacer(modifier = Modifier.height(16.dp))
 
-    if (mostrarCamara) {
-        CameraView(
-            onCapture = { file ->
-                mostrarCamara = false
-                Toast.makeText(context, "Foto guardada: ${file.name}", Toast.LENGTH_SHORT).show()
-
-                val rutaFoto = file.absolutePath
-
-
-                viewModel.marcar(tipoMarcacion, rutaFoto)
-            }
-        )
-    }else{
-
-
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .padding(24.dp),
-        verticalArrangement = Arrangement.Center,
-        horizontalAlignment = Alignment.CenterHorizontally,
-
-    ){
-        Text("Marcación Actual", fontSize = 24.sp, fontWeight = FontWeight.Bold)
-
-        Spacer(modifier = Modifier.height(16.dp))
-
-        Text(
-            text = estadoMarcacion,
-            fontSize = 18.sp,
-            color = if (estadoMarcacion.contains("Entrada")) Color(0xFF4CAF50) else Color.Gray
-        )
-
-        Spacer(modifier = Modifier.height(60.dp))
-
-        Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = tipoMarcacion == "Entrada",
-                    onClick = { tipoMarcacion = "Entrada" },
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1976D2))
-                )
-                Text("Entrada", fontSize = 18.sp)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = tipoMarcacion == "Salida_A_Refrigerio",
-                    onClick = { tipoMarcacion = "Salida_A_Refrigerio" },
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1976D2))
-                )
-                Text("Salida a Refrigerio", fontSize = 18.sp)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = tipoMarcacion == "Regreso_De_Refrigerio",
-                    onClick = { tipoMarcacion = "Regreso_De_Refrigerio" },
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1976D2))
-                )
-                Text("Regreso de Refrigerio", fontSize = 18.sp)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = tipoMarcacion == "Salida",
-                    onClick = { tipoMarcacion = "Salida" },
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1976D2))
-                )
-                Text("Salida", fontSize = 18.sp)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                RadioButton(
-                    selected = tipoMarcacion == "Papeleta",
-                    onClick = { tipoMarcacion = "Papeleta" },
-                    colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1976D2))
-                )
-                Text("Papeleta", fontSize = 18.sp)
-            }
-        }
-
-        Spacer(modifier = Modifier.height(32.dp))
-
-        if (tipoMarcacion == "Papeleta") {
-            TextField(
-                value = papeleta,
-                onValueChange = { papeleta = it },
-                label = { Text("Observación / Papeleta") },
-                modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+            Text(
+                text = estadoMarcacion,
+                fontSize = 18.sp,
+                color = if (estadoMarcacion.contains("Entrada")) Color(0xFF4CAF50) else Color.Gray
             )
-        }
 
-        Spacer(modifier = Modifier.height(32.dp))
+            Spacer(modifier = Modifier.height(60.dp))
 
-        Text("Lat: ${latitud ?: "?"}, Long: ${longitud ?: "?"}")
-
-        Button(
-            onClick = {
-//                if (tipoMarcacion == "Papeleta" && papeleta.isEmpty()) {
-//                    Toast.makeText(context, "El campo de papeleta es obligatorio", Toast.LENGTH_SHORT).show()
-//                } else {
-//                    if (tipoMarcacion != "Papeleta") {
-//                        mostrarCamara = true
-//                        //viewModel.marcar(tipoMarcacion)
-//                        //Toast.makeText(context, tipoMarcacion, Toast.LENGTH_SHORT).show()
-//                    } else {
-//                        viewModel.marcar(tipoMarcacion)
-//                        tipoMarcacion = "Entrada" // Despues de Marcar la papeleta se va a entrada
-//                    }
-//                }
-                if (tipoMarcacion == "Papeleta" && papeleta.isEmpty()) {
-                    Toast.makeText(context, "El campo de papeleta es obligatorio", Toast.LENGTH_SHORT).show()
-                }else{
-                    if(tipoMarcacion != "Papeleta"){
-                        when{
-                            cameraPermissionState.status.isGranted ->{
-                                mostrarCamara=true
-                            }
-                            cameraPermissionState.status.shouldShowRationale ->{
-                                Toast.makeText(context,"Se necesita permiso de cámara para tomar la foto", Toast.LENGTH_LONG).show()
-                                cameraPermissionState.launchPermissionRequest()
-                            }
-                            else ->{
-                                cameraPermissionState.launchPermissionRequest()
-                            }
-                        }
-                    }else{
-                        viewModel.marcar(tipoMarcacion)
-                        tipoMarcacion = "Entrada"
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                listOf(
+                    1 to "Entrada",
+                    2 to "Salida a Refrigerio",
+                    3 to "Regreso de Refrigerio",
+                    4 to "Salida",
+                    5 to "Papeleta"
+                ).forEach { (valor, marca) ->
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        RadioButton(
+                            selected = tipoMarcacion == valor,
+                            onClick = { tipoMarcacion = valor },
+                            colors = RadioButtonDefaults.colors(selectedColor = Color(0xFF1976D2))
+                        )
+                        Text(marca, fontSize = 18.sp)
                     }
                 }
-            },
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(60.dp),
-            shape = RoundedCornerShape(16.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
-        ) {
-            Icon(
-                imageVector = Icons.Default.Face,
-                contentDescription = "Marcar",
-                tint = Color.White
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text("Marcar $tipoMarcacion", color = Color.White, fontSize = 18.sp)
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            if (tipoMarcacion == 5) {
+                TextField(
+                    value = papeleta,
+                    onValueChange = { papeleta = it },
+                    label = { Text("Observación / Papeleta") },
+                    modifier = Modifier.fillMaxWidth(),
+                    singleLine = true
+                )
+            }
+
+            Spacer(modifier = Modifier.height(32.dp))
+
+            Text("Lat: ${latitud ?: "?"}, Long: ${longitud ?: "?"}")
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            Button(
+                onClick = {
+                    if (tipoMarcacion == 5 && papeleta.isEmpty()) {
+                        Toast.makeText(context, "El campo de papeleta es obligatorio", Toast.LENGTH_SHORT).show()
+                    } else {
+                        if (tipoMarcacion != 5) {
+                            when {
+                                permisoCamara.status.isGranted -> mostrarCamara = true
+                                permisoCamara.status.shouldShowRationale -> {
+                                    Toast.makeText(context, "Se necesita permiso de cámara para tomar la foto", Toast.LENGTH_LONG).show()
+                                    permisoCamara.launchPermissionRequest()
+                                }
+                                else -> permisoCamara.launchPermissionRequest()
+                            }
+                        } else {
+                            viewModel.marcar(tipoMarcacion, observacion = papeleta.ifBlank { null })
+                            tipoMarcacion = 1
+                            papeleta = ""
+                        }
+                    }
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(60.dp),
+                shape = RoundedCornerShape(16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF1976D2))
+            ) {
+                Icon(imageVector = Icons.Default.Face, contentDescription = "Marcar", tint = Color.White)
+                Spacer(modifier = Modifier.width(8.dp))
+                Text("Registrar", color = Color.White, fontSize = 18.sp)
+            }
         }
-
-
     }
-}
 }

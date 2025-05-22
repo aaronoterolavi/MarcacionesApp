@@ -16,27 +16,23 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.navigation.NavController
-import androidx.navigation.compose.rememberNavController
-import com.example.marcacionesapp.data.dataStore.UsuarioSessionManager
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
-import kotlinx.coroutines.withContext
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun PerfilScreen(rootNavController: NavController) {
+fun PerfilScreen(
+    navController: NavController,
+    viewModel: PerfilViewModel = hiltViewModel()
+) {
 
-    val context = LocalContext.current
-    val sessionManager = remember { UsuarioSessionManager(context) }
+    val usuario = viewModel.usuario.value
 
-    Scaffold (
+    Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
                 title = { Text("Perfil de Usuario") }
@@ -49,26 +45,36 @@ fun PerfilScreen(rootNavController: NavController) {
                 .padding(paddingValues)
                 .padding(16.dp)
         ) {
-            // Datos de ejemplo del usuario
-            Text(
-                text = "AARON OTERO",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "${usuario?.vNombres ?: ""} ${usuario?.vApellidoPaterno ?: ""} ${usuario?.vApellidoMaterno ?: ""}",
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.Bold
+                    )
                 )
-            )
+            }
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            PerfilItem(title = "DNI", value = usuario?.vDni ?: "")
+            PerfilItem(title = "Sede", value = usuario?.vSede ?: "")
+            PerfilItem(title = "Fecha de Ingreso", value = usuario?.dtFechaIngreso ?: "")
+
+            Divider(modifier = Modifier.padding(vertical = 8.dp))
+
+            PerfilItem(title = "E-mail", value = usuario?.vCorreoElectronico ?: "")
+            PerfilItem(title = "Teléfono", value = usuario?.vTelefono ?: "")
 
             Spacer(modifier = Modifier.height(16.dp))
 
-            // Botón para cerrar sesión
             Button(
                 onClick = {
-                    // Cerramos sesión y navegamos a Login
-                    CoroutineScope(Dispatchers.IO).launch {
-                        sessionManager.cerrarSesion()
-                        withContext(Dispatchers.Main) {
-                            rootNavController.navigate("login") {
-                                popUpTo(0) { inclusive = true } // Limpia el backstack
-                            }
+                     viewModel.cerrarSesion {
+                        navController.navigate("login") {
+                            popUpTo(0) { inclusive = true }
                         }
                     }
                 },
@@ -77,5 +83,21 @@ fun PerfilScreen(rootNavController: NavController) {
                 Text("Cerrar Sesión")
             }
         }
+    }
+}
+
+@Composable
+fun PerfilItem(title: String, value: String) {
+    Column(modifier = Modifier.padding(vertical = 8.dp)) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = FontWeight.Bold
+        )
     }
 }

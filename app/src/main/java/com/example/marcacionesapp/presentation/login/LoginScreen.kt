@@ -1,6 +1,5 @@
 package com.example.marcacionesapp.presentation.login
 
-import android.app.Application
 import android.widget.Toast
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.layout.Arrangement
@@ -16,17 +15,16 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.Person
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -36,15 +34,9 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
-
 import com.example.marcacionesapp.R
 import androidx.navigation.NavController
-import com.example.marcacionesapp.data.EntryPoint.UsuarioDaoEntryPoint
-import com.example.marcacionesapp.data.dao.UsuarioDao
-import com.example.marcacionesapp.data.dataStore.UsuarioSessionManager
-import com.example.marcacionesapp.data.entity.UsuarioEntity
-import dagger.hilt.android.EntryPointAccessors
-import kotlinx.coroutines.launch
+
 
 @Composable
 fun LoginScreen(
@@ -53,21 +45,8 @@ fun LoginScreen(
 ) {
     var username by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val uiState = loginViewModel.uiState
     val context = LocalContext.current
-
-    // Mostrar usuario demo solo la primera vez
-    val application = context.applicationContext as Application
-    val usuarioDao = EntryPointAccessors.fromApplication(
-        application,
-        UsuarioDaoEntryPoint::class.java
-    ).usuarioDao()
-
-    LaunchedEffect(Unit) {
-        if (usuarioDao.getUsuarioPorNombre("aotero") == null) {
-            val usuarioPrueba = UsuarioEntity(usuario = "aotero", password = "123")
-            usuarioDao.insertar(usuarioPrueba)
-        }
-    }
 
     Surface(
         modifier = Modifier.fillMaxSize(),
@@ -113,9 +92,10 @@ fun LoginScreen(
             Button(
                 onClick = {
                     loginViewModel.login(
-                        usuario = username,
-                        password = password,
+                        username,
+                        password,
                         onSuccess = {
+                            Toast.makeText(context, "Bienvenido", Toast.LENGTH_SHORT).show()
                             navController?.navigate("home") {
                                 popUpTo("login") { inclusive = true }
                             }
@@ -123,7 +103,7 @@ fun LoginScreen(
                         onError = {
                             Toast.makeText(
                                 context,
-                                "Usuario o Contraseña incorrectos",
+                                "Usuario o contraseña incorrectos",
                                 Toast.LENGTH_SHORT
                             ).show()
                         }
@@ -134,6 +114,11 @@ fun LoginScreen(
                     .height(50.dp)
             ) {
                 Text("Iniciar Sesión")
+            }
+
+            if (uiState is LoginUiState.Loading) {
+                Spacer(modifier = Modifier.height(16.dp))
+                CircularProgressIndicator()
             }
         }
     }

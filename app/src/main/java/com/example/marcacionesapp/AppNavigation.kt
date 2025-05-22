@@ -27,7 +27,7 @@ fun AppNavigation(sessionManager: UsuarioSessionManager) {
             LoginScreen(navController)
         }
         composable("home") {
-            HomeScreen(rootNavController = navController)
+            HomeScreen(rootnavController = navController)
         }
     }
 }

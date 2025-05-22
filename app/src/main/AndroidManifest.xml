@@ -26,6 +26,7 @@
             android:value="AIzaSyCn85bx__QS5M3yXkV0ZP-dNUInTZkdKQU" />
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:exported="true"
             android:theme="@style/Theme.MarcacionesApp">
             <intent-filter>

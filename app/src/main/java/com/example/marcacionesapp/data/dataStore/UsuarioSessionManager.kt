@@ -2,8 +2,8 @@ package com.example.marcacionesapp.data.dataStore
 
 
 import android.content.Context
-import com.example.marcacionesapp.data.entity.UsuarioEntity
 import androidx.datastore.preferences.core.edit
+import com.example.marcacionesapp.data.domain.model.Usuario
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -16,10 +16,10 @@ class UsuarioSessionManager @Inject constructor(
         preferences[PreferencesKeys.IS_LOGGED_IN] ?: false
     }
 
-    suspend fun guardarUsuarioSesion(usuario: UsuarioEntity) {
+    suspend fun guardarUsuarioSesion(usuario: Usuario) {
         context.dataStore.edit { preferences ->
-            preferences[PreferencesKeys.USER_ID] = usuario.id
-            preferences[PreferencesKeys.USER_NOMBRE] = usuario.usuario
+            preferences[PreferencesKeys.USER_ID] = usuario.iCodUsuario
+            preferences[PreferencesKeys.USER_NOMBRE] = usuario.vUsuario
             preferences[PreferencesKeys.IS_LOGGED_IN] = true
         }
     }
@@ -29,7 +29,6 @@ class UsuarioSessionManager @Inject constructor(
             preferences[PreferencesKeys.USER_ID]
         }
     }
-
 
     suspend fun cerrarSesion() {
         context.dataStore.edit { it.clear() }

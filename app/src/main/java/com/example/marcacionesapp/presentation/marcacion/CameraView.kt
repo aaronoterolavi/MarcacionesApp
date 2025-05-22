@@ -65,7 +65,7 @@ fun CameraView(
                     imageCapture
                 )
             } catch (e: Exception) {
-                Log.e("CameraView", "Error binding camera use cases", e)
+                Log.e("Camara", "Error", e)
             }
         }, ContextCompat.getMainExecutor(context))
     }
@@ -83,7 +83,6 @@ fun CameraView(
             modifier = Modifier.fillMaxSize()
         )
 
-        // Botón flotante sobre la cámara
         Button(
             onClick = {
                 val timestamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.getDefault()).format(Date())
@@ -101,12 +100,12 @@ fun CameraView(
                     ContextCompat.getMainExecutor(context),
                     object : ImageCapture.OnImageSavedCallback {
                         override fun onImageSaved(outputFileResults: ImageCapture.OutputFileResults) {
-                            Log.d("Camera", "Image saved: ${file.absolutePath}")
+                            Log.d("Camara", "Foto Guardada: ${file.absolutePath}")
                             onCapture(file)
                         }
 
                         override fun onError(exception: ImageCaptureException) {
-                            Log.e("Camera", "Error saving image: ${exception.message}")
+                            Log.e("Camara", "Ocurrio un error: ${exception.message}")
                         }
                     }
                 )
