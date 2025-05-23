@@ -25,9 +25,15 @@ class PerfilViewModel @Inject constructor(
     private val _usuario = mutableStateOf<Usuario?>(null)
     val usuario: State<Usuario?> = _usuario
 
+
+
     init {
+        cargarUsuario()
+    }
+
+    fun cargarUsuario() {
         viewModelScope.launch {
-            _usuario.value =obtenerUsuarioUseCase.execute()
+            _usuario.value = obtenerUsuarioUseCase.execute()
         }
     }
 

@@ -11,6 +11,6 @@ interface UsuarioDao {
         @Insert(onConflict = OnConflictStrategy.REPLACE)
         suspend fun insertarUsuario(usuario: UsuarioEntity)
 
-        @Query("SELECT * FROM T_Usuario LIMIT 1")
-        suspend fun obtenerUsuario(): UsuarioEntity?
+        @Query("SELECT * FROM T_Usuario WHERE iCodUsuario = :id LIMIT 1")
+        suspend fun obtenerUsuario(id: Int): UsuarioEntity?
 }

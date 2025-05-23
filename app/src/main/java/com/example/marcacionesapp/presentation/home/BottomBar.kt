@@ -16,8 +16,6 @@ fun BottomBar(navController: NavController) {
     val items = listOf(
         BottomNavItem.Marcacion,
         BottomNavItem.Historial,
-
-
         BottomNavItem.Mapa,
         BottomNavItem.Reportes,
         BottomNavItem.Perfil

@@ -19,7 +19,6 @@ import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -33,10 +32,6 @@ import com.example.marcacionesapp.presentation.componentes.MarcacionItem
 fun ReportesScreen(
     viewModel: ReportesViewModel = hiltViewModel()
 ) {
-
-    var estadoSeleccionado by remember { mutableIntStateOf(1) }
-
-
     val opcionesEstado = listOf(
         1 to "Pendiente",
         2 to "Enviado",
@@ -44,7 +39,9 @@ fun ReportesScreen(
     )
 
 
-    val marcaciones by viewModel.obtenerMarcaciones(estadoSeleccionado).collectAsState()
+    val estadoSeleccionado by viewModel.estadoSeleccionado.collectAsState()
+
+    val marcaciones by viewModel.marcaciones.collectAsState()
 
     var expandir by remember { mutableStateOf(false) }
 
@@ -80,7 +77,6 @@ fun ReportesScreen(
                         .fillMaxWidth()
                 )
 
-
                 ExposedDropdownMenu(
                     expanded = expandir,
                     onDismissRequest = { expandir = false }
@@ -89,7 +85,7 @@ fun ReportesScreen(
                         DropdownMenuItem(
                             text = { Text(texto) },
                             onClick = {
-                                estadoSeleccionado = valor
+                                viewModel.setEstadoSeleccionado(valor)
                                 expandir = false
                             }
                         )
@@ -98,7 +94,6 @@ fun ReportesScreen(
             }
 
             Spacer(modifier = Modifier.height(16.dp))
-
 
             LazyColumn(modifier = Modifier.fillMaxSize()) {
                 items(marcaciones) { marcacion ->

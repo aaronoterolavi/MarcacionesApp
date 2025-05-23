@@ -37,7 +37,7 @@ class MarcacionViewModel @Inject constructor(
     private val _longitud = MutableStateFlow<Double?>(null)
     val longitud: StateFlow<Double?> = _longitud
 
-    private var contador = 0
+
 
     init {
         viewModelScope.launch {
@@ -74,7 +74,7 @@ class MarcacionViewModel @Inject constructor(
 
     fun detenerUbicacion() {
         locationHelper.detenerActualizacionUbicacion()
-        Log.d("MarcacionViewModel", "Ubicación detenida manualmente.")
+
     }
 
     fun marcar(tipo: Int, rutaFoto: String? = null, observacion:String?) {

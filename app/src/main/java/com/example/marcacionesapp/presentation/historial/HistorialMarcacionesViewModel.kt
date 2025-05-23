@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.marcacionesapp.data.domain.model.Marcacion
 import com.example.marcacionesapp.data.domain.usecase.ObtenerMarcacionesUseCase
+import com.example.marcacionesapp.data.domain.usecase.ObtenerUsuarioUseCase
 import com.example.marcacionesapp.data.domain.usecase.SincronizarMarcacionUseCase
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -16,7 +17,8 @@ import javax.inject.Inject
 @HiltViewModel
 class HistorialMarcacionesViewModel @Inject constructor(
     private val obtenerMarcacionesUseCase: ObtenerMarcacionesUseCase,
-    private val sincronizarMarcacionUseCase: SincronizarMarcacionUseCase
+    private val sincronizarMarcacionUseCase: SincronizarMarcacionUseCase,
+    private val obtenerUsuarioUseCase: ObtenerUsuarioUseCase
 ) : ViewModel() {
 
     private val _historialMarcaciones = MutableStateFlow<List<Marcacion>>(emptyList())
@@ -29,11 +31,16 @@ class HistorialMarcacionesViewModel @Inject constructor(
         cargarMarcaciones()
     }
 
-    fun cargarMarcaciones() {
+    private fun cargarMarcaciones() {
         viewModelScope.launch {
-            _historialMarcaciones.value = obtenerMarcacionesUseCase().first()
+            val usuario = obtenerUsuarioUseCase.execute()
+            usuario?.let {
+                _historialMarcaciones.value = obtenerMarcacionesUseCase(it.iCodUsuario).first()
+            }
         }
     }
+
+
 
     fun sincronizarMarcaciones() {
         viewModelScope.launch {

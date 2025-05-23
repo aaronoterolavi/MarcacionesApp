@@ -21,16 +21,16 @@ class MarcacionRepositoryImpl @Inject constructor(
         dao.insertMarcacion(marcacion.toEntity())
     }
 
-    override fun obtenerMarcaciones(): Flow<List<Marcacion>> {
-        return dao.getAllMarcaciones().map { list -> list.map { it.toDomain() } }
+     override fun obtenerMarcaciones(iCodUsuario: Int): Flow<List<Marcacion>> {
+        return dao.marcacionesPorUsuario(iCodUsuario).map { list -> list.map { it.toDomain() } }
     }
 
     override suspend fun obtenerContador(): Int {
         return dao.obtenerContador() ?: 0
     }
 
-    override fun obtenerMarcacionesPorEstado(estado: Int): Flow<List<Marcacion>> {
-        return dao.getMarcacionesPorEstado(estado).map { list ->
+    override fun obtenerMarcacionesPorEstado(iCodUsuario:Int,estado: Int): Flow<List<Marcacion>> {
+        return dao.getMarcacionesPorEstado(iCodUsuario, estado).map { list ->
             list.map { it.toDomain() }
         }
     }

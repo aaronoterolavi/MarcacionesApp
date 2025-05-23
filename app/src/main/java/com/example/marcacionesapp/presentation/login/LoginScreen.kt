@@ -28,11 +28,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.example.marcacionesapp.R
 import androidx.navigation.NavController
@@ -59,8 +62,17 @@ fun LoginScreen(
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
+
+            Text(
+                text = "AgroCheck",
+                fontSize = 40.sp,
+                fontWeight = FontWeight.ExtraBold,
+                color = Color(0xFF000000),
+                modifier = Modifier.padding(16.dp)
+            )
             Image(
-                painter = painterResource(id = R.drawable.ic_launcher_foreground),
+
+                painter = painterResource(id = R.drawable.logo),
                 contentDescription = "Logo",
                 modifier = Modifier.size(120.dp)
             )

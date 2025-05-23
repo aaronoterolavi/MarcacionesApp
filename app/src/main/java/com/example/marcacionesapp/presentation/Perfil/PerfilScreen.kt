@@ -16,6 +16,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -32,6 +33,9 @@ fun PerfilScreen(
 
     val usuario = viewModel.usuario.value
 
+    LaunchedEffect(Unit) {
+        viewModel.cargarUsuario()
+    }
     Scaffold(
         topBar = {
             CenterAlignedTopAppBar(
@@ -74,7 +78,7 @@ fun PerfilScreen(
                 onClick = {
                      viewModel.cerrarSesion {
                         navController.navigate("login") {
-                            popUpTo(0) { inclusive = true }
+                            popUpTo("login") { inclusive = true }
                         }
                     }
                 },

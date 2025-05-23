@@ -16,11 +16,11 @@ interface MarcacionDao {
     @Query("SELECT MAX(contador) FROM T_marcaciones")
     suspend fun obtenerContador(): Int?
 
-    @Query("SELECT * FROM T_marcaciones ORDER BY dtFechaMarcacion DESC")
-    fun getAllMarcaciones(): Flow<List<MarcacionEntity>>
+    @Query("SELECT * FROM T_Marcaciones WHERE iCodUsuario = :iCodUsuario ORDER BY dtFechaMarcacion DESC")
+    fun marcacionesPorUsuario(iCodUsuario: Int): Flow<List<MarcacionEntity>>
 
-    @Query("SELECT * FROM T_marcaciones WHERE estado = :estado")
-      fun getMarcacionesPorEstado(estado: Int): Flow<List<MarcacionEntity>>
+    @Query("SELECT * FROM T_marcaciones WHERE iCodUsuario = :iCodUsuario AND estado = :estado")
+      fun getMarcacionesPorEstado(iCodUsuario:Int,estado: Int): Flow<List<MarcacionEntity>>
 
     @Query("UPDATE T_marcaciones SET estado = :estado WHERE id = :id")
     suspend fun actualizarEstadoMarcacion(id: Int, estado: Int)
