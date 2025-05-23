@@ -1,6 +1,6 @@
 package com.example.marcacionesapp.data.repository
 
-import android.util.Log
+
 import com.example.marcacionesapp.data.domain.model.Usuario
 import com.example.marcacionesapp.data.domain.repository.UsuarioRepository
 import com.example.marcacionesapp.data.local.dao.UsuarioDao
@@ -15,9 +15,11 @@ class UsuarioRepositoryImpl @Inject constructor(
     private val dao : UsuarioDao
 ): UsuarioRepository{
 
-    override suspend fun login(usuario:String , password:String):Usuario{
-        val usuarioDto=api.login(LoginRequestDto(usuario,password))
-        Log.e("usuarioDto", usuarioDto.toString())
+    override suspend fun login(usuario: String, password: String): Usuario {
+        val usuarioDto = api.login(LoginRequestDto(usuario, password))
+        if (usuarioDto.iCodUsuario == 0) {
+            throw Exception("Usuario o contraseña inválidos")
+        }
         val domainUser = usuarioDto.toDomain()
         dao.insertarUsuario(domainUser.toEntity())
         return domainUser
