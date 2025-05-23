@@ -1,9 +1,8 @@
 package com.example.marcacionesapp.presentation.Mapa
 
 import android.Manifest
-import android.annotation.SuppressLint
 import android.content.pm.PackageManager
-import android.location.Location
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
@@ -25,7 +24,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
-import com.google.android.gms.location.LocationServices
+import com.example.marcacionesapp.data.helper.LocationHelper
 import com.google.android.gms.maps.CameraUpdateFactory
 import com.google.android.gms.maps.model.CameraPosition
 import com.google.android.gms.maps.model.LatLng
@@ -43,51 +42,48 @@ fun MapaScreen() {
     val scope = rememberCoroutineScope()
 
 
-    val cameraPositionState = rememberCameraPositionState {
-        position = CameraPosition.fromLatLngZoom(LatLng(-12.0464, -77.0428), 10f)
+    val locationHelper = remember { LocationHelper(context.applicationContext) }
+
+    val cameraState = rememberCameraPositionState {
+        position = CameraPosition.fromLatLngZoom(
+            LatLng(-12.0464, -77.0428),
+            10f
+        )
     }
+
     val markerState = rememberMarkerState()
+    var tienePermisoUbicacion by remember { mutableStateOf(false) }
 
-    var locationPermissionGranted by remember { mutableStateOf(false) }
-
-    val locationPermissionLauncher = rememberLauncherForActivityResult(
+    val solicitarPermisoUbicacion = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
-    ) { granted ->
-        locationPermissionGranted = granted
-    }
-
-    val fusedLocationClient = remember {
-        LocationServices.getFusedLocationProviderClient(context)
-    }
-
-    LaunchedEffect(Unit) {
-        if (ContextCompat.checkSelfPermission(
+    ) { permisoConcedido ->
+        tienePermisoUbicacion = permisoConcedido
+        if (!permisoConcedido) {
+            Toast.makeText(
                 context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) == PackageManager.PERMISSION_GRANTED
-        ) {
-            locationPermissionGranted = true
-        } else {
-            locationPermissionLauncher.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                "Necesitas permiso de ubicación para continuar.",
+                Toast.LENGTH_LONG
+            ).show()
         }
     }
 
-    @SuppressLint("MissingPermission")
-    fun getCurrentLocation(onLocation: (Location) -> Unit) {
-        if (locationPermissionGranted) {
-            fusedLocationClient.lastLocation
-                .addOnSuccessListener { location: Location? ->
-                    location?.let { onLocation(it) }
-                }
+    LaunchedEffect(Unit) {
+        val permiso = ContextCompat.checkSelfPermission(
+            context,
+            Manifest.permission.ACCESS_FINE_LOCATION
+        )
+        tienePermisoUbicacion = permiso == PackageManager.PERMISSION_GRANTED
+        if (!tienePermisoUbicacion) {
+            solicitarPermisoUbicacion.launch(Manifest.permission.ACCESS_FINE_LOCATION)
         }
     }
 
     Box(modifier = Modifier.fillMaxSize()) {
         GoogleMap(
             modifier = Modifier.fillMaxSize(),
-            cameraPositionState = cameraPositionState,
+            cameraPositionState = cameraState,
             properties = MapProperties(
-                isMyLocationEnabled = locationPermissionGranted
+                isMyLocationEnabled = tienePermisoUbicacion
             ),
             uiSettings = MapUiSettings(
                 myLocationButtonEnabled = false,
@@ -97,7 +93,7 @@ fun MapaScreen() {
             if (markerState.position != LatLng(0.0, 0.0)) {
                 Marker(
                     state = markerState,
-                    title = "Tu ubicación"
+                    title = "Estás aquí"
                 )
             }
         }
@@ -110,15 +106,28 @@ fun MapaScreen() {
         ) {
             Button(
                 onClick = {
-                    getCurrentLocation { location ->
-                        val userLatLng = LatLng(location.latitude, location.longitude)
-                        markerState.position = userLatLng
-                        scope.launch {
-                            cameraPositionState.animate(
-                                update = CameraUpdateFactory.newLatLngZoom(userLatLng, 16f)
-                            )
-                        }
+                    if (!tienePermisoUbicacion) {
+                        solicitarPermisoUbicacion.launch(Manifest.permission.ACCESS_FINE_LOCATION)
+                        return@Button
                     }
+
+                    locationHelper.iniciarActualizacionUbicacion(
+                        onUbicacionRecibida = { ubicacion ->
+                            val coordenadas = LatLng(ubicacion.latitude, ubicacion.longitude)
+                            markerState.position = coordenadas
+
+                            scope.launch {
+                                cameraState.animate(
+                                    update = CameraUpdateFactory.newLatLngZoom(coordenadas, 16f)
+                                )
+                            }
+
+                            locationHelper.detenerActualizacionUbicacion()
+                        },
+                        onError = { error ->
+                            Toast.makeText(context, error, Toast.LENGTH_LONG).show()
+                        }
+                    )
                 },
                 modifier = Modifier.fillMaxWidth()
             ) {

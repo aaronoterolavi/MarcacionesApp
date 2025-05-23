@@ -1,5 +1,6 @@
 package com.example.marcacionesapp.presentation.historial
 
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.marcacionesapp.data.domain.model.Marcacion
@@ -36,21 +37,28 @@ class HistorialMarcacionesViewModel @Inject constructor(
 
     fun sincronizarMarcaciones() {
         viewModelScope.launch {
-            try {
-                _estadoSincronizacion.value = SincronizacionEstado(cargando = true)
+            _estadoSincronizacion.value = SincronizacionEstado(cargando = true)
 
-                val pendientes = _historialMarcaciones.value.filter { it.estado == 1 || it.estado == 3 }
-                pendientes.forEach { marcacion ->
+            val errores = mutableListOf<String>()
+
+            val pendientes = _historialMarcaciones.value.filter { it.estado == 1 || it.estado == 3 }
+            pendientes.forEach { marcacion ->
+                try {
                     sincronizarMarcacionUseCase(marcacion)
+                } catch (e: Exception) {
+                    errores.add("Marcación ${marcacion.iCodTipoMarcacion} falló: ${e.message}")
                 }
-
-                cargarMarcaciones()
-                _estadoSincronizacion.value = SincronizacionEstado(exito = true)
-            } catch (e: Exception) {
-                _estadoSincronizacion.value = SincronizacionEstado(mensajeError = "Error al sincronizar: ${e.message}")
-            } finally {
-                _estadoSincronizacion.value = _estadoSincronizacion.value.copy(cargando = false)
             }
+
+            cargarMarcaciones()
+
+            _estadoSincronizacion.value = if (errores.isEmpty()) {
+                SincronizacionEstado(exito = true)
+            } else {
+                SincronizacionEstado(mensajeError = errores.joinToString("\n"))
+            }
+
+            _estadoSincronizacion.value = _estadoSincronizacion.value.copy(cargando = false)
         }
     }
 

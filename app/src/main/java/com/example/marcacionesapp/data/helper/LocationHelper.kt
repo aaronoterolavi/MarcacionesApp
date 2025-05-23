@@ -5,6 +5,7 @@ import android.content.Context
 import android.content.pm.PackageManager
 import android.location.Location
 import android.os.Looper
+import android.util.Log
 import androidx.core.app.ActivityCompat
 import com.google.android.gms.location.LocationCallback
 import com.google.android.gms.location.LocationRequest
@@ -31,44 +32,59 @@ class LocationHelper @Inject constructor(
         10000L
     ).build()
 
-    fun checkLocationSettings(
-        onGPSAvailable: () -> Unit,
-        onGPSUnavailable: () -> Unit
+    fun verificarConfiguracionGPS(
+        onDisponible: () -> Unit,
+        onNoDisponible: (Exception?) -> Unit
     ) {
-        val locationSettingsRequest = LocationSettingsRequest.Builder()
+        val request = LocationSettingsRequest.Builder()
             .addLocationRequest(locationRequest)
             .build()
 
-        settingsClient.checkLocationSettings(locationSettingsRequest)
-            .addOnSuccessListener { onGPSAvailable() }
-            .addOnFailureListener { onGPSUnavailable() }
-    }
-
-    fun startLocationUpdates(onLocationUpdate: (Location) -> Unit) {
-        if (ActivityCompat.checkSelfPermission(
-                context,
-                Manifest.permission.ACCESS_FINE_LOCATION
-            ) != PackageManager.PERMISSION_GRANTED
-        ) {
-            return
-        }
-
-        locationCallback = object : LocationCallback() {
-            override fun onLocationResult(result: LocationResult) {
-                result.lastLocation?.let { onLocationUpdate(it) }
+        settingsClient.checkLocationSettings(request)
+            .addOnSuccessListener {
+                Log.d("LocationHelper", "GPS disponible.")
+                onDisponible()
             }
-        }
-
-        fusedLocationProvider.requestLocationUpdates(
-            locationRequest,
-            locationCallback!!,
-            Looper.getMainLooper()
-        )
+            .addOnFailureListener { exception ->
+                Log.w("LocationHelper", "GPS no disponible: ${exception.message}")
+                onNoDisponible(exception)
+            }
     }
 
-    fun stopLocationUpdates() {
+        fun iniciarActualizacionUbicacion(
+            onUbicacionRecibida: (Location) -> Unit,
+            onError: (String) -> Unit = {}
+        ) {
+            if (ActivityCompat.checkSelfPermission(
+                    context,
+                    Manifest.permission.ACCESS_FINE_LOCATION
+                ) != PackageManager.PERMISSION_GRANTED
+            ) {
+                onError("Permiso de ubicación no otorgado.")
+                Log.e("LocationHelper", "Permiso ACCESS_FINE_LOCATION denegado.")
+                return
+            }
+
+            locationCallback = object : LocationCallback() {
+                override fun onLocationResult(result: LocationResult) {
+                    result.lastLocation?.let {
+                        Log.d("LocationHelper", "Ubicación recibida: ${it.latitude}, ${it.longitude}")
+                        onUbicacionRecibida(it)
+                    } ?: Log.w("LocationHelper", "No se pudo obtener la ubicación.")
+                }
+            }
+
+            fusedLocationProvider.requestLocationUpdates(
+                locationRequest,
+                locationCallback!!,
+                Looper.getMainLooper()
+            )
+        }
+
+    fun detenerActualizacionUbicacion() {
         locationCallback?.let {
             fusedLocationProvider.removeLocationUpdates(it)
+            Log.d("LocationHelper", "Actualizaciones de ubicación detenidas.")
         }
     }
 }

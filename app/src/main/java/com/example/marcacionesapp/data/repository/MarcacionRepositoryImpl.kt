@@ -46,6 +46,7 @@ class MarcacionRepositoryImpl @Inject constructor(
             actualizarEstadoMarcacion(marcacion.id, 2)
         } else {
             actualizarEstadoMarcacion(marcacion.id, 3)
+            throw Exception("Error al sincronizar marcación ${marcacion.id}: Código HTTP ${response.code()}")
         }
     }
 }

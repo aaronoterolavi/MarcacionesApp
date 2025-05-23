@@ -1,5 +1,6 @@
 package com.example.marcacionesapp.presentation.marcacion
 
+import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.marcacionesapp.data.dataStore.UsuarioSessionManager
@@ -48,21 +49,32 @@ class MarcacionViewModel @Inject constructor(
     }
 
     fun iniciarUbicacion() {
-        locationHelper.checkLocationSettings(
-            onGPSAvailable = {
-                locationHelper.startLocationUpdates { location ->
-                    _latitud.value = location.latitude
-                    _longitud.value = location.longitude
-                }
+        locationHelper.verificarConfiguracionGPS(
+            onDisponible = {
+                locationHelper.iniciarActualizacionUbicacion(
+                    onUbicacionRecibida = { location ->
+                        _latitud.value = location.latitude
+                        _longitud.value = location.longitude
+                        Log.d("MarcacionViewModel", "Ubicación actual: ${location.latitude}, ${location.longitude}")
+                    },
+                    onError = { mensaje ->
+                        _estadoMarcacion.value = "Error al obtener ubicación: $mensaje"
+                        Log.e("MarcacionViewModel", mensaje)
+                    }
+                )
             },
-            onGPSUnavailable = {
+            onNoDisponible = { exception ->
                 _estadoMarcacion.value = "GPS desactivado. Actívalo para registrar ubicación."
+                exception?.message?.let {
+                    Log.w("MarcacionViewModel", "GPS no disponible: $it")
+                }
             }
         )
     }
 
     fun detenerUbicacion() {
-        locationHelper.stopLocationUpdates()
+        locationHelper.detenerActualizacionUbicacion()
+        Log.d("MarcacionViewModel", "Ubicación detenida manualmente.")
     }
 
     fun marcar(tipo: Int, rutaFoto: String? = null, observacion:String?) {
